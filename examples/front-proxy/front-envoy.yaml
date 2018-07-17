@@ -1,55 +1,58 @@
-static_resources:
-  listeners:
-  - address:
-      socket_address:
-        address: 0.0.0.0
-        port_value: 80
-    filter_chains:
-    - filters:
-      - name: envoy.http_connection_manager
-        config:
-          codec_type: auto
-          stat_prefix: ingress_http
-          route_config:
-            name: local_route
-            virtual_hosts:
-            - name: backend
-              domains:
-              - "*"
-              routes:
-              - match:
-                  prefix: "/service/1"
-                route:
-                  cluster: service1
-              - match:
-                  prefix: "/service/2"
-                route:
-                  cluster: service2
-          http_filters:
-          - name: envoy.router
-            config: {}
-  clusters:
-  - name: service1
-    connect_timeout: 0.25s
-    type: strict_dns
-    lb_policy: round_robin
-    http2_protocol_options: {}
-    hosts:
-    - socket_address:
-        address: service1
-        port_value: 80
-  - name: service2
-    connect_timeout: 0.25s
-    type: strict_dns
-    lb_policy: round_robin
-    http2_protocol_options: {}
-    hosts:
-    - socket_address:
-        address: service2
-        port_value: 80
+---
 admin:
   access_log_path: "/dev/null"
   address:
     socket_address:
       address: 0.0.0.0
       port_value: 8001
+
+static_resources:
+  clusters:
+    - connect_timeout: 0.25s
+      hosts:
+        - socket_address:
+            address: service1
+            port_value: 80
+      http2_protocol_options: {}
+      lb_policy: round_robin
+      name: service1
+      type: strict_dns
+    - connect_timeout: 0.25s
+      hosts:
+        - socket_address:
+            address: service2
+            port_value: 80
+      http2_protocol_options: {}
+      lb_policy: round_robin
+      name: service2
+      type: strict_dns
+
+  listeners:
+    - address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 80
+      filter_chains:
+        - filters:
+            - config:
+                codec_type: auto
+                http_filters:
+                  - config: {}
+                    name: envoy.router
+                route_config:
+                  name: local_route
+                  virtual_hosts:
+                    - domains:
+                        - "*"
+                      name: backend
+                      routes:
+                        - match:
+                            prefix: "/service/1"
+                          route:
+                            cluster: service1
+                        - match:
+                            prefix: "/service/2"
+                          route:
+                            cluster: service2
+                stat_prefix: ingress_http
+              name: envoy.http_connection_manager
