@@ -1,0 +1,13 @@
+domain: api
+descriptors:
+  - key: remote_address
+    rate_limit:
+      unit: second
+      requests_per_unit: 10
+
+  # Black list IP
+  - key: remote_address
+    value: 50.0.0.5
+    rate_limit:
+      unit: second
+      requests_per_unit: 0
