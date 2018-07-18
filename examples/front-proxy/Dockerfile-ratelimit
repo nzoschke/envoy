@@ -1,0 +1,9 @@
+FROM golang
+RUN apt-get update && apt-get install -y unzip
+RUN go get -u github.com/lyft/ratelimit/...
+ENV PATH $PATH:/usr/local/protoc/bin
+RUN cd /go/src/github.com/lyft/ratelimit/ && \
+    make bootstrap && \
+    make compile && \
+    cp bin/ratelimit* /bin/
+CMD ["/bin/ratelimit"]

@@ -16,6 +16,44 @@ services:
       - "8000:80"
       - "8001:8001"
 
+  ratelimit:
+    build:
+      context: ./
+      dockerfile: Dockerfile-ratelimit
+    expose:
+      - "8081"
+    ports:
+      - 8080:8080
+      - 6070:6070
+    depends_on:
+      - redis
+    networks:
+      envoymesh:
+        aliases:
+          - ratelimit
+    links:
+      - redis
+    volumes:
+      - ./ratelimit.yml:/data/ratelimit/config/ratelimit.yaml
+    environment:
+      - USE_STATSD=false
+      - LOG_LEVEL=trace
+      - REDIS_SOCKET_TYPE=tcp
+      - REDIS_URL=redis:6379
+      - RUNTIME_ROOT=/data
+      - RUNTIME_SUBDIRECTORY=ratelimit
+
+  redis:
+    image: redis:alpine
+    expose:
+      - 6379
+    ports:
+      - "6379:6379"
+    networks:
+      envoymesh:
+        aliases:
+          - redis
+
   service1:
     build:
       context: .
