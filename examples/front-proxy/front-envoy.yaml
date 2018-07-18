@@ -6,8 +6,24 @@ admin:
       address: 0.0.0.0
       port_value: 8001
 
+rate_limit_service:
+  grpc_service:
+    envoy_grpc:
+      cluster_name: "ratelimit"
+  use_data_plane_proto: true
+
 static_resources:
   clusters:
+    - connect_timeout: 0.25s
+      hosts:
+        - socket_address:
+            address: ratelimit
+            port_value: 8081
+      http2_protocol_options: {}
+      lb_policy: round_robin
+      name: ratelimit
+      type: strict_dns
+
     - connect_timeout: 0.25s
       hosts:
         - socket_address:
@@ -17,6 +33,7 @@ static_resources:
       lb_policy: round_robin
       name: service1
       type: strict_dns
+
     - connect_timeout: 0.25s
       hosts:
         - socket_address:
@@ -37,14 +54,19 @@ static_resources:
             - config:
                 codec_type: auto
                 http_filters:
+                  - config:
+                      domain: api
+                    name: envoy.rate_limit
                   - config: {}
                     name: envoy.router
                 route_config:
                   name: local_route
                   virtual_hosts:
-                    - domains:
-                        - "*"
+                    - domains: ["*"]
                       name: backend
+                      rate_limits:
+                        - actions:
+                            - remote_address: {}
                       routes:
                         - match:
                             prefix: "/service/1"
