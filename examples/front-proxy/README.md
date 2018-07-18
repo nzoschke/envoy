@@ -3,6 +3,7 @@ to the [envoy docs](https://www.envoyproxy.io/docs/envoy/latest/start/sandboxes/
 
 # Demo
 
+$ yamllint -d "{extends: default, rules: {line-length: {max: 140}, key-ordering: {}}}" front-envoy.yaml
 $ docker-compose up
 
 $ curl localhost:8000/service/1
@@ -11,11 +12,44 @@ Hello from behind Envoy (service 1)! hostname: c7fff8692c77 resolvedhostname: 17
 $ curl localhost:8000/service/2
 Hello from behind Envoy (service 2)! hostname: 2901ab8db191 resolvedhostname: 172.20.0.3
 
-# Config
+## Rate Limiting
 
-$ yamllint -d "{extends: default, rules: {line-length: {max: 140}, key-ordering: {}}}" front-envoy.yaml
+### Confnig
 
-# Benchmark
+```yaml
+domain: api
+descriptors:
+  - key: remote_address
+    rate_limit:
+      unit: second
+      requests_per_unit: 10
+
+  # Black list IP
+  - key: remote_address
+    value: 50.0.0.5
+    rate_limit:
+      unit: second
+      requests_per_unit: 0
+```
+
+### Benchmark
+
+```shell
+$ echo "GET http://127.0.0.1:8000/service/1" | vegeta attack -duration=10s | vegeta report
+Requests      [total, rate]            500, 50.16
+Duration      [total, attack, wait]    9.97709552s, 9.967891162s, 9.204358ms
+Latencies     [mean, 50, 95, 99, max]  7.722365ms, 6.348585ms, 16.458138ms, 25.995889ms, 31.768558ms
+Bytes In      [total, mean]            9256, 18.51
+Bytes Out     [total, mean]            0, 0.00
+Success       [ratio]                  20.80%
+Status Codes  [code:count]             200:104  429:396  
+Error Set:
+429 Too Many Requests
+```
+
+## Circuit Breaker
+
+### Benchmark
 
 Without circuit breaking:
 
